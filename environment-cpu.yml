@@ -1,0 +1,29 @@
+name: prodsegmenter
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.10
+  - pip
+  - jupyterlab
+  - numpy
+  - opencv
+  - matplotlib
+  - scikit-learn
+  - pytorch-cpu
+  - torchvision-cpu
+  - pip:
+    - segment-anything
+    - streamlit
+    - azureml-sdk
+    - azureml-mlflow
+    - mlflow
+    - albumentations
+    - pytest
+    - pytest-cov
+    - tqdm
+    - Pillow
+    - requests
+    - pyyaml
+    - tensorboard 

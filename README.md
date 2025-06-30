@@ -213,74 +213,192 @@ prodsegmenter/
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Complete Setup Workflow
 
-### Prerequisites
+### 📋 **When to Deploy Infrastructure**
 
-- **Azure Subscription** with appropriate permissions
-- **Git** installed locally
-- **Conda/Miniconda** installed
-- **Azure CLI** installed and configured
+Follow this **step-by-step workflow** to understand exactly when to deploy Azure infrastructure:
 
-### 1. 🔧 Azure Environment Setup
-
-```bash
-# Login to Azure
-az login
-
-# Set your subscription
-az account set --subscription "your-subscription-id"
-
-# Create resource group
-az group create --name rg-prodsegmenter --location eastus
-
-# Create Azure ML workspace
-az ml workspace create --name ml-prodsegmenter --resource-group rg-prodsegmenter
+```mermaid
+flowchart TD
+    A[📁 Project Setup<br/>Prompts 0-1] --> B[📊 Local Data Work<br/>Prompts 2-4]
+    B --> C{🤔 Ready for<br/>Model Training?}
+    C -->|Yes| D[☁️ Deploy Azure Infrastructure<br/>Before Prompt 5]
+    D --> E[🏋️ Cloud Training<br/>Prompts 5-6]
+    E --> F[🚀 Production Deployment<br/>Prompts 7-9]
+    
+    C -->|No| G[🔧 Continue Local Development]
+    G --> C
+    
+    style A fill:#e1f5fe
+    style D fill:#fff3e0
+    style E fill:#e8f5e8
+    style F fill:#f3e5f5
 ```
 
-### 2. 📥 Project Setup
+### 🎯 **Phase-by-Phase Setup Guide**
 
+#### **Phase 1: Local Development Setup** (Prompts 0-1) ✅ **COMPLETE**
 ```bash
-# Clone the repository
+# 1. Clone and setup project
 git clone https://github.com/your-org/prodsegmenter.git
 cd prodsegmenter
 
-# Create and activate conda environment
+# 2. Create conda environment
 conda env create -f environment.yml
 conda activate prodsegmenter
 
-# Initialize git (if not cloned)
-git init
-git add .
-git commit -m "Initial project setup"
+# 3. Verify setup
+python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+pytest tests/ -v
 ```
 
-### 3. ⚙️ Configuration
-
+#### **Phase 2: Data Acquisition & Processing** (Prompts 2-4)
 ```bash
-# Copy configuration template
-cp prodsegmenter_config.yaml.template prodsegmenter_config.yaml
+# 4. Download datasets (local development)
+jupyter lab notebooks/01_download_dataset.ipynb
 
-# Edit configuration with your Azure details
-nano prodsegmenter_config.yaml
+# 5. Generate SAM masks (can run locally)
+jupyter lab notebooks/02_sam_bootstrap.ipynb
+
+# 6. Preprocess data (local development)  
+jupyter lab notebooks/03_preprocessing.ipynb
 ```
 
-Set the following environment variables:
+#### **Phase 3: Cloud Infrastructure Deployment** (Before Prompt 5)
+**⚠️ Deploy Azure infrastructure when ready for cloud training:**
+
 ```bash
+# 7. Deploy Azure infrastructure
+cd deployment/infrastructure
+./deploy.sh dev  # or staging/prod
+
+# 8. Configure local environment with Azure
 export AZURE_SUBSCRIPTION_ID="your-subscription-id"
-export AZURE_RESOURCE_GROUP="rg-prodsegmenter"
-export AZURE_ML_WORKSPACE="ml-prodsegmenter"
-export AZURE_STORAGE_ACCOUNT="stprodsegmenter"
+export AZURE_ML_WORKSPACE="prodsegmenter-dev-ml"
+# Copy values from deployment output
 ```
 
-### 4. 🧪 Verification
-
+#### **Phase 4: Cloud Training & Production** (Prompts 5-9)
 ```bash
-# Test environment setup
-python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+# 9. Train models on Azure ML
+cd training/
+python train.py --config ../prodsegmenter_config.yaml --azure
 
-# Test Azure connectivity
-az ml workspace show --name ml-prodsegmenter --resource-group rg-prodsegmenter
+# 10. Evaluate and deploy models
+python evaluate.py --model_path models/best_model.pth --benchmark
+
+# 11. Deploy API and frontend (automatically via CI/CD)
+git push origin main  # Triggers deployment pipeline
+```
+
+---
+
+## 🛠️ **Quick Start Options**
+
+### **Option A: Full Local Development First** (Recommended)
+```bash
+# Start here - no Azure needed yet
+git clone <repository> && cd prodsegmenter
+conda env create -f environment.yml && conda activate prodsegmenter
+jupyter lab  # Work through Prompts 2-4 locally
+```
+
+### **Option B: Cloud-First Approach**
+```bash
+# Deploy infrastructure immediately
+cd deployment/infrastructure && ./deploy.sh dev
+# Then proceed with data work using Azure storage
+```
+
+---
+
+## ⚙️ **Prerequisites**
+
+### **For Local Development** (Prompts 0-4)
+- **Git** installed locally
+- **Conda/Miniconda** installed  
+- **Python 3.10+** support
+- **Basic GPU** (optional, for SAM)
+
+### **For Cloud Training** (Prompts 5+)
+- **Azure Subscription** with ML permissions
+- **Azure CLI** installed and configured
+- **Resource creation permissions** in Azure
+
+---
+
+## 🚀 **Environment Setup Commands**
+
+### **Local Environment Setup**
+
+#### **For Git Bash on Windows:**
+```bash
+# 1. Navigate to project directory
+cd /m/INFOSYS/Projects/ProdSegmenter
+
+# 2. Create conda environment
+conda env create -f environment.yml
+
+# 3. Activate environment (Git Bash specific)
+conda activate prodsegmenter
+# OR if above doesn't work:
+source activate prodsegmenter
+
+# 4. Verify installation
+python -c "import torch, cv2, albumentations; print('✅ All packages installed')"
+
+# 5. Run tests
+pytest tests/ -v --cov=training
+```
+
+#### **For Linux/macOS:**
+```bash
+# 1. Create conda environment
+conda env create -f environment.yml
+conda activate prodsegmenter
+
+# 2. Verify installation
+python -c "import torch, cv2, albumentations; print('✅ All packages installed')"
+
+# 3. Run tests
+pytest tests/ -v --cov=training
+```
+
+#### **Troubleshooting Git Bash + Conda:**
+If `conda activate` doesn't work in Git Bash:
+```bash
+# Initialize conda for bash
+conda init bash
+
+# Restart Git Bash, then try:
+source ~/anaconda3/etc/profile.d/conda.sh #Initiate if needed
+conda activate prodsegmenter
+```
+
+### **Azure Environment Setup** (When Ready for Cloud)
+```bash
+# 1. Login to Azure
+az login
+az account set --subscription "your-subscription-id"
+
+# 2. Deploy infrastructure  
+cd deployment/infrastructure
+./deploy.sh dev
+
+# 3. Configure local Azure connection
+az configure --defaults group=rg-prodsegmenter-dev workspace=prodsegmenter-dev-ml
+```
+
+### **Verification Commands**
+```bash
+# Local verification
+python training/train.py --help
+jupyter lab --version
+
+# Azure verification (after deployment)
+az ml workspace show
+az storage account list --resource-group rg-prodsegmenter-dev
 ```
 
 ---
@@ -486,14 +604,43 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🎯 Current Status
+## 🎯 Current Status & Next Steps
 
-**✅ Prompt 0 & 1 Complete**: Architecture defined, project bootstrapped, ready for data acquisition
+### **✅ COMPLETED: Prompts 0 & 1**
+- [x] **Project Architecture** - System design with mermaid diagrams
+- [x] **Directory Structure** - Complete project organization  
+- [x] **Core Training Pipeline** - dataset.py, train.py, evaluate.py
+- [x] **Testing Suite** - Comprehensive unit tests (80%+ coverage)
+- [x] **Azure Infrastructure** - Complete Bicep IaC templates
+- [x] **CI/CD Pipeline** - GitHub Actions with Azure deployment
+- [x] **Documentation** - READMEs, setup guides, troubleshooting
 
-**🚀 Next Steps**: 
-- Proceed to Prompt 2: Download and organize grocery shelf datasets
-- Set up SKU110K dataset processing
-- Begin SAM bootstrap pipeline
+### **🚀 NEXT: Prompt 2 - Dataset Acquisition**
+**Ready to start data acquisition phase:**
+
+```bash
+# Next commands to run:
+jupyter lab notebooks/01_download_dataset.ipynb
+# Download SKU110K dataset
+# Parse bounding boxes to COCO format  
+# Organize data for SAM processing
+```
+
+### **⏰ Timeline Overview**
+| Phase | Prompts | Environment | Status |
+|-------|---------|-------------|--------|
+| **Foundation** | 0-1 | Local | ✅ **COMPLETE** |
+| **Data Processing** | 2-4 | Local | 🚀 **NEXT** |
+| **Cloud Training** | 5-6 | Azure ML | ⏳ After infra deploy |
+| **Production** | 7-9 | Azure Full Stack | ⏳ Final phase |
+
+### **📅 Recommended Schedule**
+1. **This Week**: Complete Prompts 2-4 (data acquisition, SAM, preprocessing)
+2. **Next Week**: Deploy Azure infrastructure and begin cloud training (Prompt 5)
+3. **Following Week**: Model evaluation and production deployment (Prompts 6-9)
+
+### **🎯 Ready to Proceed?**
+The project foundation is **100% ready** for Prompt 2. No Azure deployment needed yet - we'll work locally with datasets first, then deploy cloud infrastructure when ready for model training.
 
 ---
 

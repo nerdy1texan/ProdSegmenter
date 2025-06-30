@@ -1,0 +1,275 @@
+# ProdSegmenter Configuration
+# This file contains all configuration settings for the project
+
+# Project metadata
+project:
+  name: "prodsegmenter"
+  version: "1.0.0"
+  description: "Real-time semantic segmentation of grocery shelf products"
+  author: "AI Engineering Team"
+
+# Azure Configuration
+azure:
+  # Core Azure settings
+  subscription_id: "${AZURE_SUBSCRIPTION_ID}"
+  resource_group: "rg-prodsegmenter"
+  location: "eastus"
+  
+  # Azure Machine Learning
+  ml_workspace:
+    name: "ml-prodsegmenter"
+    compute_cluster:
+      name: "gpu-cluster"
+      vm_size: "Standard_NC6s_v3"
+      min_nodes: 0
+      max_nodes: 4
+      
+  # Azure Storage
+  storage:
+    account_name: "stprodsegmenter"
+    container_names:
+      raw_data: "raw-data"
+      processed_data: "processed-data"
+      models: "models"
+      outputs: "outputs"
+      
+  # Azure Container Registry
+  container_registry:
+    name: "crprodsegmenter"
+    
+  # Azure Functions/Container Apps
+  inference:
+    function_app_name: "func-prodsegmenter-inference"
+    container_app_name: "ca-prodsegmenter-inference"
+    
+  # Azure App Service (Streamlit)
+  frontend:
+    app_service_name: "app-prodsegmenter-frontend"
+    app_service_plan: "asp-prodsegmenter"
+    
+  # Monitoring
+  application_insights:
+    name: "ai-prodsegmenter"
+  log_analytics:
+    workspace_name: "log-prodsegmenter"
+
+# Data Configuration
+data:
+  # Video processing settings
+  video:
+    target_fps: 30
+    max_fps: 60
+    frame_size: [640, 480]
+    supported_formats: [".mp4", ".avi", ".mov", ".mkv"]
+    
+  # Dataset paths
+  paths:
+    raw_videos: "data/raw/videos/"
+    raw_images: "data/raw/images/"
+    processed_frames: "data/processed/frames/"
+    processed_masks: "data/processed/masks/"
+    annotations: "data/processed/annotations/"
+    
+  # Data split ratios
+  split:
+    train: 0.7
+    validation: 0.2
+    test: 0.1
+    
+  # Preprocessing settings
+  preprocessing:
+    resize_height: 512
+    resize_width: 512
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
+    
+# SAM (Segment Anything Model) Configuration
+sam:
+  model_type: "vit_h"  # vit_h, vit_l, vit_b
+  checkpoint_url: "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"
+  device: "cuda"
+  points_per_side: 32
+  pred_iou_thresh: 0.88
+  stability_score_thresh: 0.95
+  crop_n_layers: 0
+  crop_n_points_downscale_factor: 1
+  min_mask_region_area: 100
+
+# Model Configuration
+models:
+  # Available model architectures
+  architectures:
+    - "deeplabv3plus"
+    - "unet"
+    - "yolov8_seg"
+    
+  # Default model settings
+  default:
+    architecture: "deeplabv3plus"
+    backbone: "resnet50"
+    num_classes: 10  # Background + 9 product categories
+    pretrained: true
+    
+  # DeepLabV3+ specific settings
+  deeplabv3plus:
+    backbone: "resnet50"
+    output_stride: 16
+    aspp_dilate: [12, 24, 36]
+    
+  # UNet specific settings
+  unet:
+    encoder_name: "resnet34"
+    encoder_weights: "imagenet"
+    decoder_channels: [256, 128, 64, 32, 16]
+    
+  # YOLOv8 specific settings
+  yolov8_seg:
+    model_size: "n"  # n, s, m, l, x
+    confidence_threshold: 0.25
+    iou_threshold: 0.45
+
+# Training Configuration
+training:
+  # Training hyperparameters
+  hyperparameters:
+    batch_size: 16
+    learning_rate: 0.001
+    num_epochs: 100
+    weight_decay: 0.0001
+    momentum: 0.9
+    
+  # Optimizer settings
+  optimizer:
+    type: "adamw"  # adam, adamw, sgd
+    betas: [0.9, 0.999]
+    eps: 1e-8
+    
+  # Learning rate scheduler
+  scheduler:
+    type: "cosine"  # cosine, step, exponential
+    warmup_epochs: 5
+    min_lr: 1e-6
+    
+  # Loss function
+  loss:
+    type: "focal"  # focal, crossentropy, dice
+    alpha: 0.25
+    gamma: 2.0
+    
+  # Data augmentation
+  augmentation:
+    horizontal_flip: 0.5
+    vertical_flip: 0.1
+    rotation: 15
+    brightness: 0.2
+    contrast: 0.2
+    saturation: 0.2
+    hue: 0.1
+    
+  # Early stopping
+  early_stopping:
+    patience: 15
+    min_delta: 0.001
+    
+  # Checkpointing
+  checkpointing:
+    save_every_n_epochs: 5
+    save_best_only: true
+    monitor_metric: "val_iou"
+
+# Evaluation Configuration
+evaluation:
+  metrics:
+    - "iou"
+    - "dice"
+    - "pixel_accuracy"
+    - "mean_iou"
+    - "frechet_inception_distance"
+    
+  # Performance thresholds
+  thresholds:
+    min_iou: 0.75
+    min_pixel_accuracy: 0.90
+    max_inference_time_ms: 33  # For 30 FPS real-time processing
+
+# Inference Configuration
+inference:
+  # Real-time processing settings
+  realtime:
+    target_latency_ms: 33  # 30 FPS
+    max_latency_ms: 50
+    batch_size: 1
+    
+  # Model optimization
+  optimization:
+    use_tensorrt: true
+    use_onnx: true
+    quantization: "int8"
+    
+  # API settings
+  api:
+    max_file_size_mb: 100
+    timeout_seconds: 300
+    max_concurrent_requests: 10
+
+# Deployment Configuration
+deployment:
+  # Container settings
+  container:
+    base_image: "mcr.microsoft.com/azureml/pytorch-1.13-ubuntu20.04-py38-cuda11.6-gpu"
+    port: 8000
+    health_check_path: "/health"
+    
+  # Scaling settings
+  scaling:
+    min_instances: 1
+    max_instances: 10
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    
+  # Environment variables
+  environment:
+    PYTHONPATH: "/app"
+    OMP_NUM_THREADS: "1"
+    CUDA_VISIBLE_DEVICES: "0"
+
+# Monitoring Configuration
+monitoring:
+  # Metrics to track
+  metrics:
+    - "requests_per_second"
+    - "response_time"
+    - "error_rate"
+    - "model_accuracy"
+    - "gpu_utilization"
+    - "memory_usage"
+    
+  # Alerting thresholds
+  alerts:
+    high_error_rate: 0.05
+    high_response_time_ms: 100
+    low_accuracy: 0.80
+    
+  # Logging configuration
+  logging:
+    level: "INFO"
+    format: "json"
+    retention_days: 30
+
+# Development Configuration
+development:
+  # Debugging settings
+  debug_mode: false
+  verbose_logging: true
+  
+  # Testing settings
+  test:
+    coverage_threshold: 80
+    fast_tests_only: false
+    
+  # Code quality
+  code_quality:
+    max_line_length: 88
+    use_black: true
+    use_flake8: true
+    use_mypy: true 
