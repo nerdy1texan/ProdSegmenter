@@ -333,17 +333,35 @@ cd deployment/infrastructure && ./deploy.sh dev
 ### **Local Environment Setup**
 
 #### **For Git Bash on Windows:**
+
+**With GPU (NVIDIA RTX/GTX series - Recommended):**
 ```bash
 # 1. Navigate to project directory
 cd /m/INFOSYS/Projects/ProdSegmenter
 
-# 2. Create conda environment
-conda env create -f environment.yml
+# 2. Create GPU environment (RTX 3060 compatible)
+conda env create -f environment-gpu.yml
 
-# 3. Activate environment (Git Bash specific)
+# 3. Activate environment
 conda activate prodsegmenter
-# OR if above doesn't work:
-source activate prodsegmenter
+
+# 4. Verify GPU installation
+python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}'); print(f'GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"None\"}')"
+
+# 5. Run tests
+pytest tests/ -v --cov=training
+```
+
+**CPU Only (Fallback option):**
+```bash
+# 1. Navigate to project directory
+cd /m/INFOSYS/Projects/ProdSegmenter
+
+# 2. Create CPU environment
+conda env create -f environment-cpu.yml
+
+# 3. Activate environment
+conda activate prodsegmenter
 
 # 4. Verify installation
 python -c "import torch, cv2, albumentations; print('✅ All packages installed')"
